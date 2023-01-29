@@ -1,0 +1,101 @@
+---
+title: 'Assignment 1: Data 607: Data loading and transformation'
+author: "Umer Farooq"
+date: "2023-01-28"
+output: html_document
+---
+## **According To Super Bowl Ads, Americans Love America, Animals And Sex**
+Note : The data has been acquired from [www.fivethirtyeight.com](link) 
+
+#### **Introduction**
+Introduction will try to give an overview of all the key features about the data and what this analysis is aimed at.
+ 
+##### **A) About the data:**
+This data contains a list of ads from the 10 brands that had the most advertisements in Super Bowls from 2000 to 2020, according to data from superbowl-ads.com, with matching videos found on YouTube. FiveThirtyEight staffers then came up with seven defining characteristics that are:
+
+* How funny the ad is?
+* How quickly does it present the product?
+* Is there any patriotism involved?
+* Was there any animal used?
+* Did any celebrity appear?
+* Was there any violence?
+* Was there any explicit content used?
+
+##### **B) Analysis:**
+This analysis is aimed at loading the data from Github repository and then transforming it to make it more suitable for soft-core graphical analysis. The focus of the analysis will be:
+ 
+* To check out what kind of content is being portrayed by every brand in their ads
+* This study will only take animal appearance, patriotism and explicit content into consideration
+
+#### **Setting up the environment and Loading the data:**
+The data set or .csv file has been loaded from github repository using the URL. After loading the data set into Rstudio the first 6 rows of data has been displayed using head() function.
+```{r }
+ 
+library(tidyverse) #To set-up the environment
+url <- "https://raw.githubusercontent.com/Umerfarooq122/Data_sets/main/superbowl-ads.csv"
+super_bowl <- read.csv(url)
+head(super_bowl) #Diplaying first 6 rows of data set
+```
+#### **Exploring the data**
+
+Using summary() fuction to get an overview of data set and to get acquintance with the data. Str() function is also used to learn about the structure of data set.
+```{r}
+summary(super_bowl)
+str(super_bowl)
+```
+
+We can see that the data set clearly requires some transfromation i.e. changing the name of columns and creating subsets in order to focus 
+
+#### **Data wrangling:**
+##### **Renaming columns**
+Using rename() function to change some of column names to more appropirate and easily understanding names. For instance, *"use_sex"* has been changed to *"explicit_content"*. Similarly long names like *"superbowl_ads_dot_com_url"* has been changed to *"superbowl_ads_url"* along side some other minor changes in the names of columns. After this transformation the first 6 rows are bieng displayed again usuing head() function. 
+```{r}
+super_bowl <- rename(super_bowl, superbowl_ads_url= superbowl_ads_dot_com_url, voilence=danger, celebrity_appearance = celebrity, animal_appearance= animals, explicit_content=use_sex)
+head(super_bowl)
+```
+
+##### **Creating subset(by columns):**
+
+Since the analysis will be focused on ads of brands based on patriotism, animal appearances and explicitness of the content used so let's try to make a subset of these parameters using subset() function. Again head() function has been used to view first 6 rows. 
+```{r}
+
+superbowl_subset <- subset(super_bowl, select =  c("year", "brand","patriotic","animal_appearance","explicit_content"))
+head(superbowl_subset)
+```
+##### **Creating subset(by row):**
+
+We can Also create subset from the main data set row wise. Let's say one wants to focus on a particular brand so we can even create a subset for that particular brand too. For Instance, let's focus on Toyota.
+```{r}
+superbowl_toyota <- subset(superbowl_subset, brand =="Toyota" )
+head(superbowl_toyota)
+
+```
+Note: There is no use of data frame created for just for Toyota brand in the analysis it was done just show that we can create subset by row too.
+
+#### **Graphical interpretation:**
+
+Using ggplot2 to create bar graph for all the three parameters under consideration and finally comparing the results in conclusion section 
+
+```{r}
+ggplot(data=superbowl_subset, aes( y=brand, fill= patriotic))+
+  geom_bar()+theme_dark()+
+  labs(title = "Bar graph for brand producing patriotic ads ", x="Count", y= "Brand", fill="Patriotic")
+```
+```{r}
+ggplot(data=superbowl_subset, aes( y=brand, fill= animal_appearance))+
+  geom_bar()+theme_dark()+
+  labs(title = "Bar graph for brand producing ads with most animal appearances ", x="Count", y= "Brand", fill="Animal Appreance")
+```
+```{r}
+ggplot(data=superbowl_subset, aes( y=brand, fill= explicit_content))+
+  geom_bar()+theme_dark()+
+  labs(title = "Bar graph for brand producing explicit ads ", x="Count", y= "Brand", fill="Explicit content")
+```
+
+#### **Conclusion**
+
+* It can be clearly determined from the first bar graph that "Budweiser" is by far the leading ads producer which contains patriotism while Doritos is the least patriotic content producer
+* The second again favors "Budweiser" in terms of most animal appearances in their ads, followed by "Bud Light" and "Coca-Cola". While, "NFL" has no ads with animal appearances.
+* "Bud Light" has portrayed the most explicit content in ads than any other brand on the list by far. "Pepsi" being second on the list while "NFL" again sits at the lowest.
+
+ 
