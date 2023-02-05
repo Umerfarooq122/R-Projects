@@ -1,0 +1,175 @@
+---
+title: '**Assignment 2: SQL and R (Importing a table from SQL database to Rstudio**)'
+author: "Umer Farooq"
+date: "2023-02-03"
+output: html_document
+---
+
+### **Introduction:**
+
+This markdown aims at creating a table in SQL database using SQL queries and then importing that table into Rstudio. Following are the SQL queries that were used to create the table in database, that was created in SSMS:
+
+### **SQL Code: **
+
+create table movie_rating(
+viewer_name varchar(50),
+movie varchar(50),
+ratings float);
+
+insert into movie_rating values('amina', 'spiderman',4.5);
+
+insert into movie_rating values('amina', 'batman',3.5);
+
+insert into movie_rating values('amina', 'ironman',2);
+
+insert into movie_rating values('amina', 'xmen',4);
+
+insert into movie_rating values('amina', 'galdiator',3);
+
+insert into movie_rating values('amina', 'superman',NULL);
+
+insert into movie_rating values('haris', 'spiderman',4);
+
+insert into movie_rating values('haris', 'batman',4);
+
+insert into movie_rating values('haris', 'ironman',2);
+
+insert into movie_rating values('haris', 'xmen',4.5);
+
+insert into movie_rating values('haris', 'galdiator',NULL);
+
+insert into movie_rating values('haris', 'superman',3);
+
+insert into movie_rating values('amir', 'spiderman',3.5);
+
+insert into movie_rating values('amir', 'batman',3);
+
+insert into movie_rating values('amir', 'ironman',2.5);
+
+insert into movie_rating values('amir', 'xmen',4.5);
+
+insert into movie_rating values('amir', 'galdiator',3.5);
+
+insert into movie_rating values('amir', 'superman',3);
+
+insert into movie_rating values('ali', 'spiderman',4);
+
+insert into movie_rating values('ali', 'batman',3.5);
+
+insert into movie_rating values('ali', 'ironman',NULL);
+
+insert into movie_rating values('ali', 'xmen',4);
+
+insert into movie_rating values('ali', 'galdiator',2.5);
+
+insert into movie_rating values('ali', 'superman',2.5);
+
+insert into movie_rating values('imran', 'spiderman',3.5);
+
+insert into movie_rating values('imran', 'batman',3.5);
+
+insert into movie_rating values('imran', 'ironman',2.5);
+
+insert into movie_rating values('imran', 'xmen',5);
+
+insert into movie_rating values('imran', 'galdiator',1);
+
+insert into movie_rating values('imran', 'superman',1);
+
+
+**Note:** We can also create the table here in Rstudio using sqlQuerry() function after establishing a connection with the data base.
+
+#### **Loading and setting up the environment:**
+
+Acquiring the libraries that will be required to achieve the goal of this R markdown
+
+```{r}
+library(tidyverse)
+library(RODBC)
+library(knitr)
+```
+
+#### **Setting up the connections:**
+
+The connection has been setup to a database named as *"data607"* using **odbcConnect()** function from **RODBC** package. This data base contains our desired table that we would like to import into our Rstudio
+
+```{r}
+con <- odbcConnect("data607")
+```
+
+#### **Loading the table into Rstudio:**
+
+There are numerous ways of doing that. Over here the sqlQuerry() function has been used to load the table into *moving_rating* with the help of an SQL Querry. 
+
+```{r}
+movie_rating <- sqlQuery(con, "SELECT * FROM movie_rating")
+```
+
+#### **Data Exploration:**
+
+##### **Displaying the data:**
+
+First of all, we will try to get a preview of data which is loaded into Rstudio from the database "data607". There a numerous ways of doing it we can use head() function if we want to preview all the columns and n rows of the table or as_tibble() function which can preview the first 10 rows with the columns that can fit into the screen. We can also use View() function if we want to preview the whole table. Over here I'm using as_tibble function since there only three columns
+```{r}
+str(movie_rating)
+as_tibble(movie_rating)
+```
+
+
+##### **Checking the table for missing values:**
+
+Let's have a quick check-up for any missing values in the table using is.na() functions. 
+
+```{r}
+is.na(movie_rating)
+```
+
+We can also find out the total number of missing values along side the locations of missing values using sum(is.na()) and which(is.na()) functions as shown below:
+
+```{r}
+sum(is.na(movie_rating))
+which(is.na(movie_rating))
+```
+
+##### **Cleaning the data from missing values:**
+
+There several way to deal with missing values in R. We can use the na.omit() function to ignore the missing values during calculations in the data frame.
+```{r}
+movie_rating_omit <- na.omit(movie_rating)
+```
+
+Now we can see if there is any missing data left in the data frame using na.fail() function. If it returns an error message it means that there are missing values in the data frame
+
+
+```{r}
+na.fail(movie_rating_omit)
+```
+
+As we observe that the table has no missing values which means that now we are clear to analyze it. 
+
+#### **Analysis:**
+
+##### **Visualization:**
+
+Lets make a quick graph using ggplot() to see which moving has the highest overall rating i.e. summation of ratings given by each viewer
+
+```{r}
+ggplot(data = movie_rating_omit, mapping = aes(x=movie, y=ratings, fill=viewer_name))+geom_col()+theme_classic()
+```
+
+It can be clearly observed that movie name **"xmen"** has the highest overall ratings while **"ironman"** has lowest overall ratings. 
+
+**Note:** Since we have omitted missing values even if we add maximum ratings to those columns still it will not affect the highest overall ratings
+
+We can also check out the individual ratings given by each viewer
+```{r}
+ggplot(data=movie_rating_omit, aes(x=ratings, y=movie, fill=viewer_name))+
+  geom_bar(stat="identity")+facet_wrap(~viewer_name)+theme_classic()+
+  labs(title = "Individual Viewer Rating", x="Ratings", y="Movie Name")
+```
+
+#### **Conclusion:**
+
+The idea of this R-markdown was to import a table from a database that created using SQL Queries and then perform basic data exploration on table imported in Rstudio. Afterwards the R-markdown focused on missing values in data frame and try to remove any missing values from calculations. At the end a quick Bar/column chart were produced using ggplot to gain a quick view of the data.
+
+
