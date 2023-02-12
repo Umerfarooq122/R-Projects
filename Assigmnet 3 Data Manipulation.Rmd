@@ -1,0 +1,135 @@
+---
+title: '**Assignment 3: Data manipulation:**'
+author: "Umer Farooq"
+date: "2023-02-07"
+output: html_document
+---
+##### **Setting up the environment:**
+```{r }
+library(tidyverse)
+```
+##### **Question 1.** Using the 173 majors listed in fivethirtyeight.com’s College Majors dataset [https://fivethirtyeight.com/features/the-economic-guide-to-picking-a-college-major/], provide code that identifies the majors that contain either "DATA" or "STATISTICS"
+
+
+```{r}
+url <- "https://raw.githubusercontent.com/fivethirtyeight/data/master/college-majors/majors-list.csv"
+majors_list <- read.csv(url)
+selected_majors <- majors_list %>%
+  filter(str_detect(Major, "DATA") | str_detect(Major, "STATISTICS"))
+selected_majors
+```
+
+##### **Question 2.** Write code that transforms the data below:
+
+##### [1] "bell pepper"  "bilberry"     "blackberry"   "blood orange" 
+##### [5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+##### [9] "elderberry"   "lime"         "lychee"       "mulberry"    
+##### [13] "olive"        "salal berry"
+
+##### Into a format like this: c("bell pepper", "bilberry", "blackberry", "blood orange", "blueberry", "cantaloupe", "chili pepper", "cloudberry", "elderberry", "lime", "lychee", "mulberry", "olive", "salal berry")
+
+
+
+
+```{r}
+
+x <- '[1] "bell pepper"  "bilberry"     "blackberry"   "blood orange" 
+ [5] "blueberry"    "cantaloupe"   "chili pepper" "cloudberry"  
+ [9] "elderberry"   "lime"         "lychee"       "mulberry"    
+ [13] "olive"        "salal berry"'
+
+x <- str_remove_all(x, "\\d+")
+
+x <- str_replace_all(x, "\\[]", "")
+
+x <- str_replace_all(x, "\\s+", " ")
+
+x <- str_replace_all(x, "\"\\s+", "\",")
+
+x <- str_c("c(",x,")")
+
+str_view(x)
+
+
+
+
+```
+
+
+
+##### **Question 3.** Describe, in words, what these expressions will match:
+
+**i) (.)\1\1**
+
+The above regular expression will match any character that will repeat three time in a row. The "(.)" represents a group followed by "\1" which is a back reference to first group. Our first group in this case has a "." which means a character. This character is back referred twice with "\1" so the will match any character that will repeat three time in a row.
+
+For example :
+```{r}
+
+Test_string <- c("abc312131cba", "abcabc", "abab", "111222","aabb","acca", "church","xyzzyx","reverence", "repeled", "pulp")
+
+str_subset(Test_string, "(.)\\1\\1") 
+```
+
+**ii) "(.)(.)\\2\\1"**
+
+This REGEX has two groups each has one character which is back referred in reverse order. So in other words it will match out two characters followed by the same two characters in reverse order
+
+For Example: 
+```{r}
+str_subset(Test_string, "(.)(.)\\2\\1")
+```
+
+**iii) "(..)\1"**
+
+This particular REGEX has one group that contains two characters and that group is back referred so it will match out two repeated characters
+
+for example:
+```{r}
+str_subset(Test_string, "(..)\\1")
+```
+
+
+
+**iv) "(.).\\1.\\1"**
+
+This REGEX will match out a character repeated three times with characters in between each repetition. The "." between  the group and back references stand for character between the repeated ones.
+
+For Example:
+
+```{r}
+str_subset(Test_string, "(.).\\1.\\1")
+```
+
+
+
+**v) "(.)(.)(.).\*\\3\\2\\1"**
+
+The characters followed by any character repeat 0 or more times and then the same three characters in reverse order.
+
+For Example:
+```{r}
+str_subset(Test_string, "(.)(.)(.).*\\3\\2\\1")
+```
+
+
+##### **Question 4.** Construct regular expressions to match words that:
+
+i) Start and end with the same character.
+
+```{r}
+str_subset(Test_string, "^(.).*\\1$")
+```
+
+ii) Contain a repeated pair of letters (e.g. "church" contains "ch" repeated twice.)
+
+```{r}
+str_subset(Test_string, "(..).*\\1")
+```
+
+iii) Contain one letter repeated in at least three places (e.g. "eleven" contains three "e"s.)
+
+```{r}
+str_subset(Test_string, "([a-z]).*\\1.*\\1")
+```
+
