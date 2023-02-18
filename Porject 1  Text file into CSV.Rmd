@@ -1,0 +1,121 @@
+---
+title: "**Project 1: Data Analysis**"
+author: "*Umer Farooq*"
+date: "2023-02-07"
+output: html_document
+---
+### **Introduction :**
+In this project, we were given a text file with chess tournament results where the information has some structure. Our job was to create an R Markdown file that generates a .CSV file (that could for example be imported into a SQL database)
+with the following information for all of the players:
+
+**Player’s Name, Player’s State, Total Number of Points, Player’s Pre-Rating, and Average Pre Chess Rating of Opponents**
+
+For the first player, the information would be:
+
+Gary Hua, ON, 6.0, 1794, 1605 
+
+1605 was calculated by using the pre-tournament opponents’ ratings of 1436, 1563, 1600, 1610, 1649, 1663, 1716, and dividing by the total number of games played.
+
+#### **Setting up the environment:**
+
+First we are going to setup our environment by calling in the libraries that will help us in the cleaning and wrangling the data. We will mostly use functions from **stringr** package and a few functions from **readr** alongside **base R**. So we are going to call the **tidyverse** library which has both readr and stringr
+
+```{r setup, include=TRUE}
+library(tidyverse)
+
+```
+
+After loading the desired packages we are going to use **readLines** function from base R to read and load the text file into our R Markdown
+
+```{r}
+tournament_info <- paste(readLines("./tournamentinfo.txt"))
+head(tournament_info)
+
+```
+
+Looking at the file loading we would need to do some cleaning before try to put in order for a .csv format. From the **head()** function we clearly see that the first four lines of the text file does not have any valuable information so we will get rid of that to ease up the proceedings for ourselves
+
+```{r}
+tournament <- tournament_info[-c(0:4)]
+```
+
+After removing the rows lets replace all the tabs(if there are any) with nothing. Which can eases the process of designing the regular expression during data extraction from the file
+
+```{r}
+tournament_clean <- str_replace_all(tournament, "\\t", "")
+```
+
+Let's check out the first 6 rows of the file and see if we are on the are right track with setting up the file.
+
+```{r}
+head(tournament_clean)
+```
+Now looking at the first 6 rows we seemed to be on the right track but if look at the data closely, we find enough patterns to extract the desired data by matching it through regular expression using **str_extract()** function from stringr. But to make it even more simpler we can actually divide the data into two tiers: **tier_1** will have the data from odd rows i.e. 1,3,5,7,.... , which contains player's name and opponents faced e.t.c., while, **tier_2** will have data from even rows i.e. 2,4,6,8,... which contains info about state of the player and ratings e.t.c. 
+The reason why we are splitting the data into two tiers is that it will reduce our efforts in extracting the data through regular expressions
+
+```{r}
+tier_1 <- str_subset(tournament_clean, "[[:alpha:]]{3}")
+tier_2 <- str_subset(tournament_clean, "[[:digit:]]{3}") 
+#head(tier_1)
+#head(tier_2)
+```
+
+Now we easily extract the data such as name, state, total points and other required details with the help of **regular expressions (REGEX)**. So in order to extract out the names of players we can apply **str_extract()** function from stringr with the help of a REGEX that matches a pattern that has some alphabets followed by space and again a series of alphabets 
+
+```{r}
+name <- str_extract(tier_1, "([[:alpha:]]+)\\s[[:alpha:]]+")
+```
+
+Similarly, we can extract out state of the player. Since state comprises of only two letters we'll use the REGEX that will match two consecutive letters only
+ 
+```{r}
+state <- str_extract(tier_2, "\\w\\w")
+```
+
+The same methodology is being used for extracting total point and pre rating.
+
+```{r}
+total_points <- as.numeric(str_extract(tier_1, "\\d\\W\\d"))
+pre_rating <- str_extract(tier_2, ".\\: \\s?[[:digit:]]{3,4}")
+pre_rating <- as.numeric(str_extract(pre_rating, "[:digit:]+"))
+```
+
+Opponent faced by each will be required in calculating the Average Pre Chess Rating of Opponents, So we will extract that information and store it in a variable called "opponent_faced".
+
+```{r warning=FALSE}
+opponent_faced <- str_extract_all(tier_1, "\\s\\d+\\|")
+opponent_faced <- str_extract_all(opponent_faced, "\\d+")
+```
+
+In order to calculate the average pre chess opponent rating we will use for loop because each player has faced number of players and we know that average pre chess opponent rating is equal average of pre rating of all the opponents faced by each player. For example, Gary Hua has played against the player number 39,21,18,14,7,4. So her, average pre chess opponent rating = (1436 + 1563 + 1600 + 1610 + 1649 + 1716) / 7. 
+
+```{r}
+Avg_opponent_rating <- c()
+
+for(i in c(1:length(opponent_faced))){
+  Avg_opponent_rating[i] <- round(mean(pre_rating[as.numeric(opponent_faced[[i]])]),0)
+}
+Avg_opponent_rating
+```
+
+Now we can combine all the data into a data fame using **cbind.data.frame()** function.
+
+```{r}
+tournament_new <- cbind.data.frame(name, state, total_points, pre_rating, Avg_opponent_rating)
+colnames(tournament_new)<- c("Players_Name","State", "Total_points", "Pre_Rating" ,"Average_PreChess_RatingOfOpponents")
+head(tournament_new)
+```
+
+Finally we can convert it data frame into a .csv file by using **write_csv()** function from readr package
+
+```{r}
+write_csv(tournament_new, 'tournament.csv' , append = FALSE)
+```
+
+#### **Conclusion:**
+
+In project we mainly learned about the use of REGEX with stringr package to extract out and analyze the required information from a text file in its raw from and then convert that information into more organized .csv file. The practices used in the project helps on building good skills to work with REGEX and how to approach the problems of such type
+
+#### **Future work:**
+
+This particular project can be further extended to extract more data about why the number 1 is actually number 1 and also the final .csv file created can be sent to the data base.
