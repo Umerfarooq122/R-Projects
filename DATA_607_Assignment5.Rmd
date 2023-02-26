@@ -1,0 +1,98 @@
+---
+title: "**Tidying and Transforming data**"
+author: "*Umer Farooq*"
+date: "2023-02-21"
+output: html_document
+---
+
+
+
+### **Week 5 Assignment:**
+#### **Instructions:**
+The chart below describes arrival delays for two airlines across five destinations. Your task is to: Create a .CSV file (or optionally, a MySQL database!) that includes all of the information below. You’re encouraged to use a “wide” structure similar to how the information appears below, so that you can practice tidying and transformations. Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data. Perform analysis to compare the arrival delays for the two airlines. Your should include narrative descriptions of your data cleanup work, analysis, and conclusions.
+
+```{r global_options, include=FALSE}
+
+knitr::opts_chunk$set(eval = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+```
+
+
+```{r echo=FALSE}
+knitr::include_graphics("https://user-images.githubusercontent.com/96589710/221388514-d78adca4-bbbe-4919-ba5e-73988ba77b6b.png")
+```
+
+**Q1: Create a .CSV file (or optionally, a MySQL database!) that includes all of the information above.You’re encouraged to use a “wide” structure similar to how the information appears above, so that you can practice tidying and transformations as described below.**
+
+**Answer:** The wide format table has been created and assigned to a variable called *flight_info*. First of all the rows a created the way they were in the provided image and then using **rbind** they were bound into a table. After creating the table it was downloaded onto the working directory using *write.table* function
+```{r}
+flight_info <- rbind.data.frame(c(NA, NA, "Los Angeles", "Phoenix", "San Diego", "San Francisco", "Seattle"),
+             c("ALASKA", "On Time", 497, 221, 212, 503, 1841),
+             c(NA, "Delayed", 62, 12, 20, 102, 305),
+             c("AM WEST", "On Time", 694, 4840, 383, 320, 201),
+             c(NA, "Delayed", 117, 415, 65, 129, 61))
+
+write.table(flight_info, file = "flight_info.csv", sep = ",", col.names=F, row.names=F)
+
+```
+
+
+After the table was created and download into the local working directory it was uploaded into a *Github* repository from where it was loaded into the the Rmarkdown using *read.csv()*  function
+
+```{r}
+flight_info_wide <- read.csv("https://raw.githubusercontent.com/Umerfarooq122/Data_sets/main/flight_info.csv") 
+knitr::kable(head(flight_info_wide))
+```
+
+**Q 2: Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data.**
+
+**Answer:** Now in order to analyze the data, we have to transform it into more analysis friendly structure. In order to achieve that we have to transform and tidy up the data from its original wide format into a long format with the help of functions from *dplyr* and *tidyr*. First of we will work on the first two columns and will try to change that using *mutate()* with *coalesce()*. After that the data from column 3 to 7 can be gathered into flights and destination using *gather()*. Above steps will transform the the table into long format. We can select and arrange the information the way we want using *select()* and *arrange()*.
+
+```{r}
+flight_info_long <- flight_info_wide|>
+  mutate(alaska=NA., amwest = lag(NA.))|>
+  mutate(airlines= coalesce(alaska,amwest), status = NA..1)|>
+  gather("destinations", "flights", 3:7)|>
+  select(airlines:flights)|>
+  arrange(airlines, desc(status), destinations);
+knitr::kable(head(flight_info_long))
+```
+
+Now we can see that data has been transformed into the desired analysis friendly format. We can actually add one more step to it and spread the status columns into Delayed and On time columns by using the values from flight column with the help of *spread()* function.
+
+```{r}
+flight_info_long <- spread(flight_info_long, status, `flights`)
+knitr::kable(head(flight_info_long))
+```
+
+**Q 3: Perform analysis to compare the arrival delays for the two airlines.**
+
+**Answer:** Before jumping into the conclusion by doing an overall comparison of the two Airlines let us first compare them destination wise. In order to achieve that we will go ahead and make a new data frame that will contain columns for the percent of delayed and on time flights alongside total flights for each airlines for every destination which will give us a rough idea of how the airlines are performing based on destinations and the total flights flying to the same destination. 
+
+```{r}
+comparison_by_city <- flight_info_long|>
+  mutate(total_flights= (Delayed + `On Time`), percent_delay= round((Delayed / ( Delayed+ `On Time`))*100,1), percent_ontime= 100-percent_delay)|>
+  select(airlines,destinations,percent_delay,percent_ontime, total_flights)|>
+  group_by(airlines)|>
+  arrange(desc(percent_ontime),.by_group = TRUE)
+knitr::kable(comparison_by_city)
+```
+
+We can see that Alaska airlines has a better percentage of on time arrivals to every single destination but there certain destination in which even though Alaska airlines has a better percentage but the sample size is not that significant compared to AM West. Take the flight to Phoenix for an example, Alaska airlines has an on time arrivals of 94.8% and AM West has 92.1% which suggest to take Alaska airlines when flying to Phoenix but if you compare the sample size so Alaska has only 233 flight compared to 5255 from AM West. Which makes AW West more reliable.
+
+Now lets compare the overall performance of both airlines.At this instance we kind of have a rough idea that since Alaska airlines has a lower arrival delay to every destination so we would expect the same results in overall
+
+```{r}
+overall_comparison <- flight_info_long|>
+  group_by(airlines)|>
+  select(airlines,Delayed,`On Time`)|>
+  summarise(total_delayed=sum(Delayed),total_ontime=sum(`On Time`), delay_percent=round(sum(Delayed)/(sum(Delayed) + sum(`On Time`)) * 100, 2), ontime_percent=round(sum(`On Time`)/(sum(Delayed) + sum(`On Time`)) * 100, 2))
+
+knitr::kable(overall_comparison)
+```
+
+But in fact we see an anti climax which is that AM west has lower delay in overall comparison than Alaska airlines. The reason being that a good amount of AM West flights were to Phoenix i.e. 5255 out of 6438, which governs the overall performance when it comes to flight delay and we can clearly see that AM West did well when the destination was Phoenix that is how it ended up over Alaska airlines
+
+#### **Conclusion:**
+
+We can conclude that if the number of flights flights is low Alaska airlines performs better and if the number of flights is higher then AM West performs better. To support the statement above we can recall the performance by destination, the table was set in descending order of percent on-time arrivals as the number the of flight increases from 233 to 2146 so the delay in arrival increases. Conversely, the AM West performs better when the number of flights are higher i.e. for Phoenix which is 5255 but it soon as the number of flight goes down so did the performance figures. Based on the conclusion derived each airline has an exceptional value the does not follow along the trend with others. 
