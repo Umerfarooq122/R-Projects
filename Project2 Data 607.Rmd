@@ -1,0 +1,251 @@
+---
+title: "**Project 2: Tidying and Transformation**"
+author: "*Umer Farooq*"
+date: "2023-02-28"
+output: 
+    html_document:
+    includes:
+      in_header: header.html
+    css: ./lab.css
+    highlight: pygments
+    theme: cerulean
+---
+### **Project 2 Instructions:**
+
+Choose any three of the “wide” data sets identified in the Week 6 Discussion items. (You may use your own data set; please don’t use my Sample Post dataset, since that was used in your Week 6 assignment!) For each of the three chosen datasets:
+
+* Create a .CSV file (or optionally, a MySQL database!) that includes all of the information included in the data set. You’re encouraged to use a “wide” structure similar to how the information appears in the discussion item, so that you can practice tidying and transformations as described below.
+* Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data. [Most of your grade will be based on this step!]
+* Perform the analysis requested in the discussion item.
+
+```{r global_options, include=FALSE}
+library(tidyverse)
+library(janitor)
+library(data.table)
+```
+
+
+### **Table 1:**
+
+This Table has been taken from our classmate *Coco Donovan's* discussion. The table possesses the data regarding people from different religions and their income bracket. The reason why I chose this table is to analyze how people from different Abrahamic religions i.e. Islam, Christianity and Judaism, are doing financially based on this dataset.
+
+#### **Creating and Transforming Table:**
+First of all we'll load the data into our R studio. The link from where we can access the data was already available in the discussion courtesy of Coco Donovan.
+
+```{r}
+religion_wide <- read.csv("https://raw.githubusercontent.com/rodrigomf5/Tidydata/master/relinc.csv")
+knitr::kable(head(religion_wide))
+```
+
+So as we can see that the data is in clearly wide and untidy format. I will be using *pivot_longer()* from dplyr to transform the table into more analytic friendly form but before that lets fix the names of columns that contains income brackets using *rename()* function. We can arrange and group the final data in transformed table using *arrange()* and *group_by()* functions:
+
+```{r}
+religion_long <- religion_wide|>
+  rename('<10K' = X.10k, '10-20k'=X10.20k,'20-30k'=X20.30k	,'30-40k'=X30.40k,'40-50k'=X40.50k,'50-75k'=X50.75k,'75-100k'=X75.100k,'100-150k'=X100.150k,'>150k'=X.150k)|>
+  pivot_longer(cols = 2:11, names_to = "Income", values_to = "Frequency")|>
+  group_by(religion)|>
+  arrange(Frequency,.by_group = TRUE)
+knitr::kable(head(religion_long))
+
+```
+
+#### **Analysis:**
+
+Now we can clearly see that the table has been transformed into more acceptable format we comes to analysis. Lets create a new column using *mutate()* function which will give us the percentage of each income bracket grouped by their religion with the help of *group_by()* function. Since our focus was to see how all the Abrahamic religions are doing lets focus on that and filter out the rest of the religions using *filter()* function.
+
+Note: For this analysis the **refused** rows are also being filtered out
+
+```{r}
+religion_summary <- religion_long|>
+  group_by(religion)|>
+  mutate(Percent = round(Frequency/sum(Frequency)*100,2))|>
+  filter( religion %in% c( "Muslim" ,"Catholic", "Orthodox","Jewish","Other Christian", "Evangelical Prot"))|>
+  filter(Income != "refused")
+knitr::kable(head(religion_summary))
+```
+
+Now we got the summarized table and we can further go ahead and plot the data using ggplot and see how people from different religions are performing financially.
+
+```{r}
+ggplot(data = religion_summary, aes(x=Income, y= Percent, fill=religion))+
+  geom_bar(stat = "identity",position = "dodge")+theme_bw()
+
+```
+
+
+In the above bar graph we have plotted the percentage against income and we can see that the distributions look pretty normal. People from different religions have peaks in different income brackets but one thing to notice here and that is, that this graph could be misleading in way that we have percentage of people grouped by their religion because if look at the data set you'll find very low frequency of people from the religion of Islam As shown in the table below
+
+```{r}
+religion_comp <- religion_long|>
+  group_by(religion)|>
+  filter( religion %in% c( "Muslim" ,"Catholic"))|>
+  spread(religion,Frequency)|>
+  filter(Income != "refused")
+knitr::kable(head(religion_comp))
+```
+
+Now Islam being the second largest religion and definitely more followers than Catholic Christians (19% to 17% roughly) according to Wikipedia so the sample size should have been larger than one we have and if we plot both Islam and Catholicism against each other on a bar chart a very skewed distribution can be observed as shown in the graph below
+
+```{r}
+religion_comp1 <- religion_long|>
+  group_by(religion)|>
+  filter( religion %in% c( "Muslim" ,"Catholic"))
+ggplot(data = religion_comp1, aes(x = Income, y = Frequency, fill=religion)) +
+  geom_bar(stat = "identity", position = position_dodge(), alpha = 0.75)  +
+  ylim(0,800) +
+  geom_text(aes(label = Frequency), fontface = "bold", vjust = 1.5,
+             position = position_dodge(.9), size = 4)+theme_bw()
+```
+
+#### **Conclusion:**
+
+If we look at the current data and decide how people are doing from different religions financially so according to the analysis it will be in accurate to use the data set above since it was acquired from christian dominated area and cannot be generalized for the rest of the world. But if you want to compare the religion percent wise then one can probably get a rough idea.
+
+
+### **Table 2:**
+
+The table 2 in this project is taken from Waheeb Algabri's discussion. The table contains information of three students i.e. Suzan, John and Alex, and their scores in three different subject. We will be trying to tidy up and transform the table first and then we will try to analyze the data set afterwards:
+
+#### **Creating and Transforming Table:**
+
+Since we don't have any link provided to the actual table so we have to create the table in Rstudio using *data.frame()* function. Initially we created the columns and the stored it into columns names and after that those columns were joined into a data frame.
+
+```{r}
+Name <- c("Suzan", "John", "Alex")
+Age <-  c( 27, 31, 31)
+Gender <- c("F", "M", "M")
+Math1 <- c(90,95, 84)
+Science_2 <- c(75,80,70)
+English <- c(86,91,65)
+
+mark_sheet <- data.frame(Name, Age, Gender, Math1, Science_2, English)
+knitr::kable(head(mark_sheet))
+```
+
+Now we can see that we got our desired table in wider format and we can transform it to longer as suggested by Waheeb in his discussion. This around I would try a different method to transform the table. Previously we tried *pivot_longer()* function and this time we will use *gather()* function from dplyr and try to transform the table and arrange it according but before doing that we will use the *rename()* function to fix the subject name and make it in accordance with the final tidy table as suggested in Waheeb's discussion.
+
+```{r}
+
+mark_sheet_long <- mark_sheet|>
+  rename("Math"="Math1", "Science"="Science_2")|>
+  gather("Subject","Score",4:6)|>
+  group_by(Name)|>
+  arrange(desc(Score), .by_group = TRUE)
+knitr::kable(head(mark_sheet_long))
+```
+
+Now the table has been tidied and transformed to the desired form and we can go ahead with analysis:
+
+#### **Analysis:**
+
+Since the there is not much of a data available to play with, we will try to assign grades to each student and then check out the overall percentage and grade for each student. Over here i will be using *mutate()* function with *case_when()* to create a new column that will posses the grade for each student in each subject
+
+```{r}
+grade <- mark_sheet_long|>
+  mutate(Subject_wise_grade = case_when(Score >= 90 & Score <= 92.9 ~ 'A-',
+  Score >= 87 & Score <= 89.9 ~ 'B+', Score >=93 ~ 'A', Score >=83 & Score <= 86.9 ~'B', Score >=80 & Score <= 82.9 ~ 'B-', Score >= 77 & Score <= 79.9 ~ 'C+', Score >= 70 & Score <= 76.9 ~'C', Score <= 69.9 ~ 'F'))|>
+  select(Name,Subject,Score, Subject_wise_grade)|>
+  group_by(Name)|>
+  arrange(Subject_wise_grade,.by_group = TRUE)
+knitr::kable(grade)
+```
+**Note:** The grade has been assigned using the criteria of course Data 607
+
+Now we can see the assigned grade for each subject for each student. Lets find out the overall grade and distribution of the score. We will using the same grading criteria with same *mutate()* function but this time we'll aggregate the mean of score for each student using *aggregate()* function. The reason behind using aggregate function to expand upon different functions and how can we use them in our analysis
+
+
+```{r}
+overall_score <- grade|>
+  select(Name, Score)|>
+  aggregate(.~Name,mean)|>
+  mutate(Overall_grade = case_when(Score >= 90 & Score <= 92.9 ~ 'A-',
+  Score >= 87 & Score <= 89.9 ~ 'B+', Score >=93 ~ 'A', Score >=83 & Score <= 86.9 ~'B', Score >=80 & Score <= 82.9 ~ 'B-', Score >= 77 & Score <= 79.9 ~ 'C+', Score >= 70 & Score <= 76.9 ~'C', Score <= 69.9 ~ 'F'))|>
+  
+  
+  arrange(desc(Score))
+knitr::kable(overall_score)
+```
+
+We can see the overall grade in the table above. No surprises as John bad better grades overall and he ended up on top. Conversely Alex ended at the bottom of the class. We can checkout the distribution of scores among the student using ggplot bar chart.
+```{r}
+ggplot(data = overall_score, aes(x=Name, y=Score, fill = Name))+
+  geom_bar(stat = "identity")+theme_bw()
+```
+
+#### **Conclusion:**
+
+The data set that we just analyzed and transformed was pretty simple and straightforward. John the highest scorer in the class understandably got good grades and stood out while Alex ended at the bottom of the grade. Since there were only three students so we could not get an actual distribution but nevertheless something to visually represent how students stand in the class.
+
+### **Table 3:**
+
+Table 3 has been taken from the discussion of our classmate Farhana Akhtar. The reason why i chose this table to see how each candidate is doing against other in CA and FL.
+
+#### **Creating and Transforming Table:**
+
+Since I wanted to explore more on the transformation of table and previously we have used *pivot_longer()* and *gather()* functions. Now this time around we will using a different technique to transform the table. Before that lets create the table and get on with the transformation. In order to create the table we'll make columns and store it in their corresponding variable(column name) and then using *data.frame()* function we can create the data frame.
+
+```{r}
+candidate <- c("Hillary Clinton", "Donald Trump","Gary Johnson","Jill Stein")
+CA <- c(5931283,3184721,308392,166311)
+FL <- c(4485745,4605515,206007,64019)
+
+election <- data.frame(candidate,CA, FL)
+election <- as.data.table(election)
+
+knitr::kable((head(election)))
+```
+
+You'll notice that after creating the data frame I have changed it to a data table which will help me using the *melt()* function to transform the table. after transforming the data table we can also re arrange and group the data as needed: 
+
+```{r}
+election_long <- election|>
+  melt(id.vars="candidate",
+       measure.vars = c("CA", "FL"),
+     variable.name = "state",
+     value.name = "votes")|>
+  group_by(candidate)|>
+  arrange(desc(votes), .by_group = TRUE)
+knitr::kable(head(election_long))
+```
+
+We can see that the table has been transformed into a longer format and now we can carry on with our analysis:
+
+#### **Analysis:**
+
+This particular is relatively easy to analyze. We can find out the percent of votes that a candidate is getting in each state and then store the result in a separate column using *mutate()* function
+
+```{r}
+election_summary <- election_long|>
+  group_by(state)|>
+  mutate(Percent_votes = round(votes/(sum(votes))*100,0))|>
+  arrange(desc(Percent_votes),.by_group = TRUE)
+```
+
+We can also visualize the the percentage of votes each candidate got in CA and Fl 
+```{r}
+ggplot(election_summary, aes(x=candidate , y= Percent_votes, fill=candidate))+
+  geom_bar(stat = "identity")+facet_wrap(~state)+theme_bw()+scale_x_discrete(guide = guide_axis(angle = 20))+theme(legend.position = "none")+labs(x="",y="Percent of Votes") 
+```
+
+We can clearly see that Hillary is leading in CA while Trump is leading in FL. We can also check who got the popular votes out of these two states.
+
+```{r}
+election_popular <- election_long|>
+  select(candidate,votes)|>
+  aggregate(.~candidate,sum)|>
+  mutate(percent_votes = round(votes/(sum(votes))*100,0))|>
+  arrange(desc(votes),.by_group = TRUE)
+knitr::kable(head(election_popular))
+```
+
+According to the table above Hillary has the lead in popular vote. We can also see that using ggplot
+
+```{r}
+ggplot(election_popular, aes(x=candidate, y=votes, fill = candidate))+
+  geom_bar(stat = "identity")+theme_bw()+theme(legend.position = "none")+labs(x="",y="Total Votes") 
+```
+
+#### **Conclusion:**
+
+We can see that Hillary has a clear lead in the popular votes but if your looking at the data considering state as an entity then we can call it a draw between trump and Hillary since each won one state.
+Note: Each state has different number of representative based on their population.
