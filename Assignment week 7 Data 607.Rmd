@@ -1,0 +1,201 @@
+---
+title: "**Working with XML and JSON in R**"
+author: "Umer Farooq"
+date: "2023-03-06"
+output: html_document
+---
+
+### **Assignment week 7:**
+
+#### **Instructions:**
+
+ * Pick three of your favorite books on one of your favorite subjects. At least one of the books should have more than one author. For each book, include the title, authors, and two or three other attributes that you find interesting.
+ * Take the information that you’ve selected about these three books, and separately create three files which store the book’s information in HTML (using an html table), XML, and JSON formats (e.g. “books.html”, “books.xml”, and “books.json”). To help you better understand the different file structures, I’d prefer that you create each of these files “by hand” unless you’re already very comfortable with the file formats.
+ * Write R code, using your packages of choice, to load the information from each of the three sources into separate R data frames. Are the three data frames identical?
+
+#### **Creating and Loading Table:** 
+##### **Loading the required packages**
+
+```{r load-packages, message=FALSE}
+knitr::opts_chunk$set(eval = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(rvest)
+library(rjson)
+library(XML)
+library(xml2)
+library(RCurl)
+library(data.table)
+library(knitr)
+```
+
+##### **Creating HTML Table:**
+
+The html code was put into the notepad and saved as `.html`. After that the file in .html format was upload to github repo from where it was loaded into Rstudio. Following is the code for table in HTML:
+
+```{r eval=FALSE}
+<table>
+  <tr>
+    <th>ID</th>
+    <th>Book</th>
+    <th>Author1</th>
+    <th>Author2</th>
+    <th>Year_Pub</th>
+    <th>Edition</th>
+    <th>Subject</th>
+  </tr>
+  <tr>
+    <th>1.0</th>
+    <td>Fundamentals of Thermodynamics</td>
+    <td>Michael J. Moran</td>
+    <td>Howard N. Shapiro</td>
+    <td>2020.0</td>
+    <td>Eight</td>
+    <td>Engineering</td>
+  </tr>
+  <tr>
+    <th>2.0</th>
+    <td>Relic</td>
+    <td>Lincoln Child</td>
+    <td>Douglas Preston</td>
+    <td>2019.0</td>
+    <td>First</td>
+    <td>Fiction</td>
+  </tr>
+  <tr>
+    <th>3.0</th>
+    <td>Heads you lose</td>
+    <td>Lisa Lutz</td>
+    <td>David Hayward</td>
+    <td>2017.0</td>
+    <td>First</td>
+    <td>Data Science</td>
+  </tr>
+</table>
+
+```
+
+##### **Loading the HTML Table:**
+
+The .html table was loaded from github repo using `read_html()` function from `rvest` Library. After reading the html the table was loaded as data frame with the help `html_table()` function from `rvest` and `as.data.frame()` function from `Base R`
+
+```{r}
+url <- "https://raw.githubusercontent.com/Umerfarooq122/link-files/main/table.html"
+table1 <- read_html(url)
+
+book_html <- as.data.frame(table1 |> html_table())
+kable(head(book_html))
+```
+
+##### **Creating JSON Table:**
+
+The same process was done for JSON as we did for html. Initially, the the JSON code was put into notepad as saved as `.json` to change the format. Afterwards, the .json was uploaded to github repo from where it was loaded in Rstudio environment. Following is the code for table in JSON
+
+```{r eval=FALSE}
+{ 
+   "ID":[1,2,3],
+   "Book":["Fundamentals of Thermodynamics","Relic","Heads you lose" ],
+   "Author1":["Michael J. Moran","Lincoln Child","Lisa Lutz"],
+   "Author2":["Howard N. Shapiro","Douglas Preston","David Hayward"],
+   "Year_Pub":[2020,2019,2017],
+   "Edition":["Eight","First","First"],
+   "Subject":["Engineering","Fiction","Data Science"]
+
+}
+```
+
+##### **Loading JSON Table:**
+
+The JSON table was loaded from github repo into Rstudio. Similar to html, JSON table was loaded using `fromJSON()` from `rjson` library and stored as data frame using `as.data.frame()` function from `Base R`
+
+```{r}
+url <- "https://raw.githubusercontent.com/Umerfarooq122/link-files/main/table.json"
+mydata <- fromJSON(file = url)
+book_json <- as.data.frame(mydata) 
+kable(head(book_json))
+```
+
+##### **Creating XML Table:**
+
+The XML table was created using `Microsoft notepad++` and then code was saved in github repo. Following is the code for XML table:
+
+```{r eval=FALSE}
+<?xml version="1.0" encoding="UTF-8"?>
+
+<book>
+ <book1>
+  <ID>1</ID>
+  <Book>Fundamentals of Thermodynamics</Book>
+  <Author1>Michael J. Moran</Author1>
+  <Author2>Howard N. Shapiro</Author2>
+  <Year_Pub>2020</Year_Pub>
+  <Edition>Eight</Edition>
+  <Subject>Engineering</Subject>
+  </book1>
+ <book2>
+  <ID>2</ID>
+  <Book>Relic</Book>
+  <Author1>Lincoln Child</Author1>
+  <Author2>Douglas Preston</Author2>
+  <Year_Pub>2019</Year_Pub>
+  <Edition>First</Edition>
+  <Subject>Fiction</Subject>
+  </book2>
+ <book3>
+  <ID>3</ID>
+  <Book>Heads you lose</Book>
+  <Author1>Lisa Lutz</Author1>
+  <Author2>David Hayward</Author2>
+  <Year_Pub>2017</Year_Pub>
+  <Edition>First</Edition>
+  <Subject>Data Science</Subject>
+  </book3>
+</book>
+```
+
+##### **Loading XML Table:**
+
+The xml table was loaded from github repo using `getURL()`function from `RCURL` library. Afterwards the with help of `xmlToDataFrame()` function from `XML` library the XML table was loaded in the form of data frame: 
+
+```{r}
+a <- "https://raw.githubusercontent.com/Umerfarooq122/link-files/main/table.xml"
+data <- getURL(a)
+book_xml <- xmlToDataFrame(data)
+kable(head(book_xml)) 
+
+```
+
+#### **Comparison:**
+
+In this particular section the data frame from different sources are bieng compared if they are similar or if there is any difference:
+
+##### **Comparing XML to JSON:**
+
+With the help of `all.equal()` function from `Base R` we will be comparing the two data frames. The reason why I have chosen `all.equal()` function over `identical()` function is that `all.equal()` function gives the reason or the exact points where the data frames differ from each other.
+
+
+```{r}
+all.equal(book_xml, book_json) 
+```
+Now we can see that both data frames are pretty much equal in all other aspects but just one and that is the data type. In XML table everything is loaded as characters while on the other hand the JSON loaded the numeric values as numeric rather than characters. Lets compare XML to HTML
+
+##### **Comparing XML to HTML:**
+
+```{r}
+all.equal(book_xml, book_html) 
+```
+And we can see the similar results. HTML table also loaded with numeric values as type numeric. This implies that JSON and HTML should return TRUE. Lets compare and find out.
+
+##### **Comparing HTML to JSON:**
+
+```{r}
+all.equal(book_html, book_json) 
+```
+As we expected, it did return True for HTML and JSON.
+
+#### **Conclusions:**
+
+We saw that after comparing the data frames there was an issue with the data types of XML as HTML and JSON did load the numbers as numeric but numbers in XML were loaded as characters. Upon some research it was found that we can fix this issue by defining the data with the help of a schema at top of XML file but the idea was to load the tables as they are created in these different file formats and compare them.
+
+**Note:** The attributes of the books in table might not be right since the whole point was to work with different types of files.
+
+
