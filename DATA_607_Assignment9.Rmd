@@ -1,0 +1,66 @@
+---
+title: "**Data 607 Assignment week 9**"
+author: "**Umer Farooq**"
+date: "2023-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Overview:**
+
+This particular session will cover on how to connect to New York times(NYT) API through Rstudio and load the data in the form of data frame. First we have to create an API key. In order to create that we have to sign up to NYT using the link: https://developer.nytimes.com/accounts/create, after signing we can create the API key using link : https://developer.nytimes.com/my-apps/new-app . Once we have created the API key with NYT we can easily fetch the data in form of JSON file in Rstudio and then convert it into a data frame for further investigations.
+
+Our aim is to find the top ranking book in the Fiction Genre on date: 01/20/2023. In order to achieve our goal we have to set up our Rstudio environment. I will be using the following packages  called in the code chunk:
+
+```{r include=TRUE, warning=FALSE, message=FALSE}
+# Setting up the environment
+library(tidyverse)
+library(httr)
+library(jsonlite)
+library(RCurl)
+```
+
+First I will use `GET()` function from `httr` package to secure a connection with the NYT API. The following link contains the date and genre of the books. These links are pre given on NYT API page: ([link]("https://developer.nytimes.com/docs/books-product/1/overview"))
+
+
+
+```{r}
+res = GET("https://api.nytimes.com/svc/books/v3/lists/2023-01-20/hardcover-fiction.json?api-key=Sbf8cqn7VjRc3DFuYTQ0Z5Y9Pe852kHM")
+res
+```
+
+When the status = 200 it means that our connection is established with the API and we can import our required data from the link. Since the data imported will be in the JSON format so we will have to use functions from `jsonlite` package. First we will contents of the link into a variable in the form of Character using `rawToChar()` function from `Base R`.
+
+```{r}
+a <- rawToChar(res$content)
+```
+
+Then, we can use `fromJSON()` function from `jsonlite` package by setting the argument flatten to `TRUE` and converting it into data frame using `data.frame()` function.
+
+```{r}
+data <- fromJSON(a, flatten = TRUE)|>
+  data.frame()
+
+```
+
+
+After that we can use select and rename function from tidyverse to extract the required results and save it into a variable as data frame. 
+
+```{r}
+book_lists <-data|>
+  select(results.books.rank, results.books.title,results.books.author,results.books.contributor,results.books.publisher,status)|>
+  rename(Status = status, Title=results.books.title, Author=results.books.author, Contributor=results.books.contributor, Rank=results.books.rank, Publisher =results.books.publisher)
+
+knitr::kable(book_lists)
+```
+
+I will just end it  by making a simple plot to see if everything is working fine the data frame.
+
+```{r}
+ggplot()+
+  geom_bar(book_lists, mapping = aes(x=Publisher, fill = Publisher))+coord_flip()+theme_bw()+theme(legend.position = "none")
+```
+
