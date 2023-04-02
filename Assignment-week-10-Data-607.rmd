@@ -1,0 +1,326 @@
+---
+title: "**Sentiment Analysis**"
+author: "**Umer Farooq**"
+date: "2023-04-01"
+output: 
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## **Introduction** {.tabset}
+
+In this particular file we will work on sentiment analysis. Sentiment analysis is the process of computationally identifying and categorizing opinions expressed in a piece of text, especially in order to determine whether the writer's attitude towards a particular topic, product, etc. is positive, negative, or neutral according to Oxford. This work is based on two parts, i) to copy and reproduce the code from the book mentioned in the link at the bottom, and ii) to extend the same code to apply it to another corpus and also to do research on another lexicon from a different package apart from `tidytext` package. So let's get down to business
+
+### Code from the book
+
+In the book they first got the text data of novels and then the text was un-nested using `unnest_tokens()` function to make it tidy. Afterwards using `group_by()` and `mutate()` functions extra columns to keep track of which line and chapter of the book each word comes from. In order to achieve that we have to set up the environment first, so let's acquire all the required libraries:
+
+
+#### **Setting up the environment:**
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(syuzhet)
+library(tidytext)
+library(textdata)
+library(janeaustenr)
+library(wordcloud)
+library(reshape2)
+```
+
+Let's put everything into columns as mentioned above:
+
+```{r}
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text, 
+                                regex("^chapter [\\divxlc]", 
+                                      ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+```
+
+let’s `filter()` the data frame with the text from the books for the words from Emma and then use `inner_join()` to perform the sentiment analysis. What are the most common joy words in Emma? Let’s use `count()` from dplyr.
+
+```{r}
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+tidy_books %>%
+  filter(book == "Emma") %>%
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+```
+
+```{r}
+jane_austen_sentiment <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book, index = linenumber %/% 80, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+```
+```{r}
+ggplot(jane_austen_sentiment, aes(index, sentiment, fill = book)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~book, ncol = 2, scales = "free_x")
+```
+
+
+#### **Comparing the three sentiment dictionaries:** 
+
+Let’s use all three sentiment lexicons and examine how the sentiment changes across the narrative arc of Pride and Prejudice. First, let’s use filter() to choose only the words from the one novel we are interested in.
+
+```{r}
+pride_prejudice <- tidy_books %>% 
+  filter(book == "Pride & Prejudice")
+```
+
+
+```{r}
+afinn <- pride_prejudice %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(index = linenumber %/% 80) %>% 
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(
+  pride_prejudice %>% 
+    inner_join(get_sentiments("bing")) %>%
+    mutate(method = "Bing et al."),
+  pride_prejudice %>% 
+    inner_join(get_sentiments("nrc") %>% 
+                 filter(sentiment %in% c("positive", 
+                                         "negative"))
+    ) %>%
+    mutate(method = "NRC")) %>%
+  count(method, index = linenumber %/% 80, sentiment) %>%
+  pivot_wider(names_from = sentiment,
+              values_from = n,
+              values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)
+```
+
+```{r}
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y")
+```
+```{r}
+get_sentiments("nrc") %>% 
+  filter(sentiment %in% c("positive", "negative")) %>% 
+  count(sentiment)
+```
+
+
+```{r}
+get_sentiments("bing") %>% 
+  count(sentiment)
+```
+#### **Most common positive and negative words:**
+
+One advantage of having the data frame with both sentiment and word is that we can analyze word counts that contribute to each sentiment. By implementing `count()` here with arguments of both word and sentiment, we find out how much each word contributed to each sentiment.
+
+```{r}
+bing_word_counts <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+```
+```{r}
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+```
+```{r}
+custom_stop_words <- bind_rows(tibble(word = c("miss"),  
+                                      lexicon = c("custom")), 
+                               stop_words)
+```
+
+#### **Wordclouds:**
+
+We’ve seen that this tidy text mining approach works well with ggplot2, but having our data in a tidy format is useful for other plots as well.
+
+For example, consider the wordcloud package, which uses base R graphics. Let’s look at the most common words in Jane Austen’s works as a whole again, but this time as a wordcloud in Figure 2.5.
+
+```{r}
+tidy_books %>%
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+In other functions, such as `comparison.cloud()`, you may need to turn the data frame into a matrix with reshape2’s `acast()`. Let’s do the sentiment analysis to tag positive and negative words using an inner join, then find the most common positive and negative words. Until the step where we need to send the data to `comparison.cloud()`, this can all be done with joins, piping, and dplyr because our data is in tidy format.
+
+```{r}
+tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                   max.words = 100)
+```
+
+**Code Source:** https://www.tidytextmining.com/sentiment.html
+
+### Extending the Code {.tabset}
+
+In order to extend the code I will go ahead and apply it to data frame that contains the reviews of customers about **Women Clothing E-Commerce**. Initially, I will load the data set and display the first row only since it contains long reviews so we do not want the data frame to take all the space.
+
+```{r}
+df <- read.csv("https://raw.githubusercontent.com/Umerfarooq122/Data_sets/main/Womens%20Clothing%20E-Commerce%20Reviews.csv")
+```
+
+```{r}
+knitr::kable(head(df, 1))
+```
+
+After loading the data set I will subset the review columns into a tibble and using `tibble()` function and also lower the case of letter for uniformity and easy match-up using `str_to_lower()` function and storing everything in variable called as `review.df``
+
+```{r}
+review.df <- tibble(review_txt= str_to_lower(df$Review.Text))
+```
+
+Now our review column is ready for sentiment analysis
+
+#### Bing
+
+Now We will try check out the sentiments of customer using `Bing` lexicon from `tidytext` and see what are the results. In order to achieve that first we will un-nest the words in `review.df` using `unnest_tokens()` function and save words in word column. Similarly we will perform an inner join to join sentiment from `Bing` Lexicon using `inner_join()` function. And also get the frequency of each word's occurrence using `count()`
+
+```{r message=FALSE, warning=FALSE}
+bing_words_counts <- review.df|>
+  unnest_tokens(output = word, input = review_txt)|>
+  inner_join(get_sentiments("bing"))|>
+  count(word, sentiment, sort = TRUE)
+knitr::kable(head(bing_words_counts))
+```
+
+We can see that there are close to 1800 words and in order to display that on graph, could be really messy. Let's get the top 10 high frequency words.
+
+```{r}
+bing_t10_senti <- bing_words_counts|>
+  group_by(sentiment)|>
+  slice_max(order_by = n, n=10)|>
+  ungroup()|>
+  mutate(word=reorder(word,n))
+```
+
+We got the top 10 word let's plot the on a bar graph
+
+```{r}
+bing_t10_senti|>
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_bar(stat = 'identity')+labs(x='Sentiments', y='Contribution')+
+  facet_wrap(~sentiment, scales = 'free_y')+coord_flip()+theme_bw()
+```
+
+We can see that there is a lot of positive sentiment from the customers towards the business in question. Similarly, we can display the top 100 word using `wordcloud`
+
+```{r}
+bing_words_counts|>
+  with(wordcloud(word, n, max.words = 100))
+```
+We can also display the words in terms of positivity and negativity using `acast()` function from `reshape2` library.
+
+```{r}
+library(reshape2)
+
+bing_words_counts|>
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                   max.words = 100)
+```
+
+
+#### Loughran
+
+Similarly, we can use another lexicon from called as `loughran` from package `textdata`. This lexicon labels words with six possible sentiments important in financial contexts: "negative", "positive", "litigious", "uncertainty", "constraining", or "superfluous"
+
+```{r}
+loughran_words_counts <- review.df|>
+  unnest_tokens(output = word, input = review_txt)|>
+  inner_join(get_sentiments("loughran"))|>
+  count(word, sentiment, sort = TRUE)
+```
+
+```{r}
+loughran_t10_senti <- loughran_words_counts|>
+  group_by(sentiment)|>
+  slice_max(order_by = n, n=10)|>
+  ungroup()|>
+  mutate(word=reorder(word,n))
+```
+
+```{r}
+loughran_t10_senti|>
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_bar(stat = 'identity')+labs(x='Sentiments', y='Contribution')+
+  facet_wrap(~sentiment, scales = 'free_y')+coord_flip()+theme_bw()+theme(legend.position = 'none')
+```
+
+As we can see that along side positive reviews there were some uncertain reviews too. We can also display the top words
+
+```{r}
+loughran_words_counts|>
+  with(wordcloud(word, n, max.words = 100))
+```
+
+#### NRC
+
+Similarly we can use `nrc` to carry out sentiment analysis. `nrc` is general purpose English sentiment/emotion lexicon. This lexicon labels words with six possible sentiments or emotions: "negative", "positive", "anger", "anticipation", "disgust", "fear", "joy", "sadness", "surprise", or "trust". The annotations were manually done through Amazon's Mechanical Turk.
+
+```{r}
+syu_words_counts <- review.df|>
+  unnest_tokens(output = word, input = review_txt)|>
+  inner_join(get_sentiments("nrc"))|>
+  count(word, sentiment, sort = TRUE)
+knitr::kable(head(syu_words_counts))
+```
+
+```{r}
+syu_t10_senti <- syu_words_counts|>
+  group_by(sentiment)|>
+  slice_max(order_by = n, n=10)|>
+  ungroup()|>
+  mutate(word=reorder(word,n))
+knitr::kable(head(syu_t10_senti))
+```
+
+```{r fig.width=10}
+syu_t10_senti|>
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_bar(stat = 'identity')+labs(x='Sentiments', y='Contribution')+
+  facet_wrap(~sentiment, scales = 'free_y')+coord_flip()+theme_bw()+theme(legend.position = 'none')
+```
+
+We can see that `nrc` has a wide range of emotions which could be really help in the understanding different types of emotions from the reviewer/respondents. Similarly the top word according `nrc` can also be displayed:
+
+```{r}
+syu_words_counts|>
+  with(wordcloud(word, n, max.words = 100))
+```
+
+
+
+## **Conclusion:**
+
+Sentiment analysis is a great way of understanding what customers/audience wants. In the extension of code from the book we did apply three lexicons i.e.NRC, loughran and Bing, from different packages. All the lexicons has their own domains to be applied, for instance, `nrc` is a general purpose lexicon compare to `loughran` which is more business/finance oriented. Similarly, `bing` is a great lexicon for polarization. In our analysis the reviews came out to be very positive but we have to bear in mind that the analysis was carried out based on literal meaning of word which negates the contextual meaning. There are ways to analyze text based on complete sentences but those were not covered here.
