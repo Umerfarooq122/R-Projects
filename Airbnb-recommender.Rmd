@@ -1,0 +1,113 @@
+---
+title: "AirBnB Recommender System"
+author: "Umer Farooq"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+## Recommender systems:
+
+A recommender system is an AI algorithm that implements machine learning on utilizes big data to create an engine that recommend or suggest additional products/services based on a certain criteria [1]. This criteria might includes past purchases, search history, demographic information, and other factors. Recommender systems are highly useful as they help users discover products and services they might otherwise have not found on their own.
+
+Utilizing information obtained from customer's previous encounters, recommender systems are trained to comprehend the preferences, prior choices, and characteristics of both people and things. These encounters consist of views, clicks, favorites, and purchases. Recommender systems are popular among content and product suppliers due to their ability to predict consumer interests and wishes on a highly personalized level. They can direct customers to almost any good or service that piques their interest, including books, movies, health classes, and apparel.
+
+## Types of Recommender systems:
+
+While there are variety of recommender algorithms and techniques, majority of those algorithm and techniques fall into these broad categories: collaborative filtering,  content filtering and context filtering [1].
+
+### Collaborative filtering:
+
+Collaborative filtering uses similarities between users and items simultaneously to provide recommendations.These recommender systems create a model based on a user's prior actions, such as things previously purchased, ratings given to those items, and similar user decisions. The theory holds that there is a strong likelihood that individuals will choose additional items together in the future if they have already made comparable decisions and purchases, such as choosing a movie.
+
+### Content filtering:
+
+Content-based filtering uses item features to recommend other items similar to what the user likes, based on their previous actions or explicit feedback. For example, if a content filtering recommender sees you liked the movies from a particular genre, it might recommend another movie to you with the same genres and/or cast such as Joe Versus the Volcano.
+
+### Context filtering:
+
+Context-based recommender system acquires patterns from internet based on the user's past interactions and provides future news recommendations.This uses a sequence of contextual user actions, plus the current context, to predict the probability of the next action.
+
+## Scenario Design for AirBnB:
+
+### Targeted users of AirBnB?
+
+The target users for AirBnB are the travelers who are looking for alternative lodging options to traditional hotels. More specifically, they're often looking for a more localized experience; they want to “live like a local” which is the language AirBnB uses to attract that audience to the platform. Alongside that AirBnB also deal the guests as targeted users too.
+
+### Key goals
+
+According to Bar Ifrach [2] in his study AirBnB is a two sided marketplace. So there are two key goals for each side of the market
+
+ * For guests its goal is to simplify hosting routine and provide smooth lodging process.
+ * For hosts its goal is to increase your bookings, earnings and get better guest reviews.
+
+ 
+### Methods used in achieving their goals?
+
+#### For Guests: 
+
+Since most of the travelers booking through AirBnB wants a smooth lodging process so AirBnB used effective ways to keep the process easy and smooth through App and website which came in the top 5 best user experience website at one point. Similarly, the whole check-in, check-out and transaction process is hassle free.
+
+#### For Hosts:
+
+AirBnB provided all the hosts an ability to upload better quality images of their property alongside an estimation on how to be competitive price point. Similarly, the hosts can attain popularity through getting better reviews from guests. Most popular listings have higher chances of getting guests.
+
+
+## Reverse Engineering AirBnB's Algorithm:
+
+After carrying out some due diligence I have found out that AirBnB uses a proprietary algorithm for internally classifying properties which determine how to rank the properties on the search results page of the website. A proprietary algorithm is a sequence of steps or rules performed to achieve a specific goal, belonging to a commercial company as it has been trademarked or patented by its owner. Since AirBnB is a too sided marketplace, Bar Ifrach [2] in his study tried to mimic the algorithm from the perspective of an guest and in order to achieve that he considered the preferences of the host in his algorithm. He considered the acceptance and declination of guest's request by the host based on characteristic of the trip, check in/check out and the number of guests.In Bar Ifrach study his key findings were:
+
+ * In a two sided marketplace like AirBnB, personalization can be effective on the buyer as well as the seller side.
+ * The general perception before mimicking the algorithm was that it might be following collaborative filtering was also proven wrong.
+ 
+He did in fact wished to create an effective model using multilevel model with host fixed-effect which according to him would have solved the issue but it was computationally demanding and not suited for a sparse data set.
+
+Another study carried out by Thibault Masson, which emphasis on the perspective of a host [3]. He mentions that the listing that is put by the host for his property to be rented mainly depends on three things, that are i) Price, ii) Quality and, iii) Popularity. According to Thibault, Quality is a subjective matter and to account this AirBnB algorithm considers photos,guest reviews, size, location and other details. Similarly popularity is measured using metrics such as saving the listing by guests, book the listing or sending a booking request and for the price algorithm consider market competitiveness of the listing.
+
+In the same study Thibault mentions an interesting fact about AirBnB algorithm which states that: To understand how the AirBnB ranking algorithm works and see how you can influence it, you have to first step into the shoes of a guest. The algorithm is designed to help AirBnB make money by presenting to guests a list of properties that they are most susceptible to book and that will bring AirBnB more money. For instance, if AirBnB were showing guests properties that are not available on the dates they are looking for or that have fewer bedrooms than requested, guests would be unsatisfied and leave the platform without booking anything. So, for each request made by a guest, AirBnB needs to consider all of its inventory of properties, list the properties that best match what is needed, and rank them in an order that will appeal to the guests (and make money for AirBnB). All in a fraction of a second
+
+In another article [4] the author tried content-based filtering algorithm for AirBnB and did a great job but his results according to him were not that conclusive but it still worth a read.
+
+## Recommendation:
+
+One  recommendation that Would start with is to add more data about locality into their algorithm by asking questions from the hosts when they are putting their listing for the property to be rented for example questions like:
+
+ * What kind of food is available in the local area of property?
+ * Is there any local events going on in those days i.e. concert or sports?
+ * What are some scenic areas close-by? any hiking or off-roading sites close-by?
+ * What are the local trends?
+ 
+The reason why I would suggest and incorporate that is because a lot of people who wants to use AirBnB do want to explore different but yet they want to feel and live like a local to the area. Plus this move will play on both sides of the market.
+
+Another suggestion that I would make is to either set the algorithm in a way that low quality images could be replaced by high or hire/contract a team of photographers that can actually easy to approach by the hosts and they can get high quality pictures for the host's property because sometimes a good property can be overlooked by the algorithm because of low quality pictures.
+
+Similarly, there should be proper surge payments if there an overload in tourism in a particular area just like Uber does it for its drivers. This will invite more and more hosts onto the platform and may result in high quality listings with good competitive prices with stay for a week, bed and breakfast deals. 
+
+## Conclusions:
+
+AirBnB has an overall very comprehensive and propriety algorithm which is not easy to be reverse engineered. Multiple attempts has been made in order replicate the algorithm and some did come close to the actual AirBnB algorithm while other suggested some other models that could replicate AirBnB. Based upon the knowledge that we have gained from different attempts from people in the form of research I did put forward my suggestion and my emphasis were mostly on how can we improve the algorithm so that guest feel more like a local than foriegner.
+
+## References: 
+ 
+ [1] Recommendation system, by Nvidia:
+ 
+ https://www.nvidia.com/en-us/glossary/data-science/recommendation-system/
+ 
+ [2] How Airbnb uses Machine Learning to Detect Host Preferences, by Bar Ifrach:
+ 
+ https://medium.com/airbnb-engineering/how-airbnb-uses-machine-learning-to-detect-host-preferences-18ce07150fa3
+ 
+ [3] How does the Airbnb search algorithm work?, by Thibault Masson:
+ 
+ https://www.rentalscaleup.com/airbnb-search-ranking-algorithm/#:~:text=Airbnb%20uses%20a%20proprietary%20algorithm,results%20page%20of%20the%20website.
+ 
+ [4] Airbnb Content-Based Recommendation System, by Royan Dawud Aldian 
+ 
+ https://www.kaggle.com/code/rdaldian/airbnb-content-based-recommendation-system/notebook
+ 
